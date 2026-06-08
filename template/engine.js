@@ -20,11 +20,19 @@
   const $ = (id) => document.getElementById(id);
   const distinct = (arr) => [...new Set(arr)];
   function hash(s, n) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % n; }
+  // normalize a cell value: trim strings; turn numeric text ("2024", " 6 ") into a real
+  // number so years/months/IDs from Excel compare and sort consistently.
+  function coerce(v) {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    if (t !== "" && !isNaN(t) && isFinite(Number(t))) return Number(t);
+    return t;
+  }
   function interp(str, tok) { return String(str || "").replace(/\{(\w+)\}/g, (_, k) => (tok && k in tok ? tok[k] : `{${k}}`)); }
   const fmt = (v, d) => Number(v).toFixed(d == null ? SPEC.metric.decimals : d);
 
   function orderedDistinct(values, preferred) {
-    const seen = distinct(values);
+    const seen = distinct(values).filter((v) => v !== undefined && v !== null && v !== "");
     if (!preferred) return seen;
     return [...preferred.filter((v) => seen.includes(v)), ...seen.filter((v) => !preferred.includes(v))];
   }
@@ -40,19 +48,22 @@
 
   // ---------- 1. MODEL ----------
   function resolveDim(def, merged) {
-    if (def.template) return def.template.replace(/\{(\w+)\}/g, (_, c) => merged[c]);
-    return merged[def.from];
+    if (def.template) {
+      return def.template.replace(/\{(\w+)\}/g, (_, c) => (merged[c] == null ? "" : String(merged[c]).trim()));
+    }
+    return coerce(merged[def.from]);
   }
 
   function buildModel(spec, raw) {
     const m = spec.model;
     const fact = raw[m.fact] || [];
     const lut = {};
-    for (const j of m.joins || []) lut[j.table] = new Map((raw[j.table] || []).map((r) => [r[j.on], r]));
+    // key dimension tables by a coerced join key so text/number id mismatches still match
+    for (const j of m.joins || []) lut[j.table] = new Map((raw[j.table] || []).map((r) => [coerce(r[j.on]), r]));
 
     const rows = fact.map((fr) => {
       const merged = Object.assign({}, fr);
-      for (const j of m.joins || []) { const jr = lut[j.table].get(fr[j.on]); if (jr) Object.assign(merged, jr); }
+      for (const j of m.joins || []) { const jr = lut[j.table].get(coerce(fr[j.on])); if (jr) Object.assign(merged, jr); }
       const row = { value: Number(fr[m.measure]) || 0 };
       for (const [dim, def] of Object.entries(m.dimensions)) row[dim] = resolveDim(def, merged);
       return row;
@@ -68,7 +79,7 @@
     const p = m.period || {};
     const mpy = {};
     const src = (p.table && raw[p.table] && raw[p.table].length) ? raw[p.table] : null;
-    if (src) src.forEach((r) => { (mpy[r[p.yearCol]] = mpy[r[p.yearCol]] || new Set()).add(r[p.monthCol]); });
+    if (src) src.forEach((r) => { const y = coerce(r[p.yearCol]); (mpy[y] = mpy[y] || new Set()).add(coerce(r[p.monthCol])); });
     Object.keys(mpy).forEach((y) => (mpy[y] = mpy[y].size));
     const months = (y) => mpy[y] || p.fallback || 12;
 
@@ -505,7 +516,22 @@
   function renderAll() {
     renderFilters();
     $("app-subtitle").textContent = interp(SPEC.subtitle, tokens());
-    for (const s of SPEC.sections) SECTION[s.type](s);
+    // Render each section in isolation: a failure in one must not blank the others.
+    const failed = [];
+    for (const s of SPEC.sections) {
+      try {
+        SECTION[s.type](s);
+      } catch (err) {
+        console.error(`[dashboard] section "${s.id || s.type}" failed to render:`, err);
+        failed.push(s.id || s.type);
+      }
+    }
+    const status = $("data-status");
+    if (status && failed.length) {
+      status.innerHTML = `<span style="color:#9e2b50">⚠ ${failed.length} section(s) could not render: ` +
+        failed.join(", ") + `. Check the browser console — usually a data issue (Year/Month not numeric, ` +
+        `or an FTE_ID / Asset_ID with no matching row).</span>`;
+    }
   }
 
   function loadModel(raw) {

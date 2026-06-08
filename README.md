@@ -83,11 +83,19 @@ a stand-in for what Claude would design, and calls the real tools — so you get
 template and dashboard, and can paste a filled `.xlsx` path to rebuild with real data. The
 only thing it skips is Claude designing/revising the spec.
 
+## Sample data
+
+`sample/resource_allocation_sample.xlsx` is a **fully-worked example** (8 people, 5 assets,
+all 12 months across 2024–2025, with a Demand sheet). Open it to see the expected shape, and
+**copy your real data into it**. Key rule it demonstrates: an FTE is a person's allocation
+*averaged over every month in the Calendar sheet*, so give each person a row for **every
+month they work** — 100% across all 12 months = 1.0 FTE (100% in only 1 month = 0.08 FTE).
+
 ## Testing the deterministic core (no AWS needed)
 
 ```bash
 python generator.py examples/resource_allocation.spec.json \
-    sample/resource_allocation_realistic.xlsx out/resource_allocation
+    sample/resource_allocation_sample.xlsx out/resource_allocation
 # → builds a full dashboard + template you can open immediately
 ```
 
