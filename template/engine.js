@@ -438,6 +438,11 @@
   }
 
   function buildLayout() {
+    // A previous load (e.g. "Upload my data") may have left ECharts instances bound to
+    // DOM nodes we're about to replace. Dispose them and clear the cache so each chart
+    // re-initialises on the fresh node — otherwise charts draw into orphaned canvases
+    // and appear blank after an upload.
+    Object.keys(charts).forEach((id) => { try { charts[id].dispose(); } catch (e) { /* noop */ } delete charts[id]; });
     const root = $("sections"); root.innerHTML = "";
     for (const s of SPEC.sections) root.insertAdjacentHTML("beforeend", sectionHtml(s));
   }
