@@ -1,0 +1,9 @@
+# Dashboard Builder agent — Python dependencies (builder machine only).
+# The *generated dashboards* need none of this; this is just for running the agent.
+#
+# Versions pinned to exactly what was verified. To allow newer, loosen == to >=.
+
+strands-agents==1.42.0     # the agent framework
+boto3==1.43.24             # AWS SDK (Bedrock)
+openpyxl==3.1.5            # read/write the Excel template
+pymupdf==1.25.3            # render PDF mockups to images (NOT needed for .docx mockups)

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 id="app-title">Dashboard</h1>
+        <p id="app-subtitle" class="muted"></p>
+      </div>
+      <div class="topbar-right">
+        <button id="btn-print" class="btn btn-ghost" title="Export / print to PDF">Export PDF</button>
+        <label class="btn btn-primary" for="file-input">Upload my data</label>
+        <input id="file-input" type="file" accept=".xlsx,.xls" hidden />
+      </div>
+    </header>
+
+    <!-- global filters (built from the spec) -->
+    <section id="filters" class="filters"></section>
+
+    <!-- all sections (built from the spec) -->
+    <div id="sections"></div>
+
+    <footer class="appfoot muted"><span id="data-status"></span></footer>
+  </div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/echarts.min.js"></script>
+  <script src="data.js"></script>     <!-- embedded sample data (window.SAMPLE_DATA) -->
+  <script src="spec.js"></script>     <!-- the dashboard description (window.DASHBOARD_SPEC) -->
+  <script src="engine.js"></script>   <!-- the generic engine -->
+</body>
+</html>

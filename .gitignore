@@ -1,0 +1,27 @@
+# Protects the agent folder if it is its own git repo (carried to another machine).
+
+# Generated dashboards, extracted MOCKUP IMAGES, filled templates, real embedded data
+out/
+mockups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Secrets — extra safety
+.env
+.env.*
+*.pem
+credentials
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Keep: template/, sample/, examples/ — these are part of the builder and SHOULD be committed.

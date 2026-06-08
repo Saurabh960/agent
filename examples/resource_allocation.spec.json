@@ -1,0 +1,132 @@
+{
+  "title": "Resource Allocation",
+  "subtitle": "{yearSpan} · All departments",
+  "palette": {
+    "series": ["#2f6fa3", "#1a8a63", "#c2870f", "#9e2b50", "#6d4fc4", "#0e7490", "#b45309", "#7c3aed"],
+    "byValue": { "VES": "#2f6fa3", "PED-COA": "#1a8a63", "RDH": "#c2870f", "OPS": "#9e2b50", "IEP": "#6d4fc4" }
+  },
+  "model": {
+    "fact": "Allocations",
+    "measure": "Percent_Allocation",
+    "joins": [
+      { "table": "FTE", "on": "FTE_ID" },
+      { "table": "Assets", "on": "Asset_ID" }
+    ],
+    "dimensions": {
+      "team":      { "from": "Function",   "label": "Team" },
+      "person":    { "from": "Name",       "label": "Person" },
+      "personId":  { "from": "FTE_ID",     "label": "Person ID" },
+      "assetName": { "from": "Asset_Name", "label": "Asset" },
+      "asset":     { "template": "{Asset_Name} / {Indication}", "label": "Asset / Indication" },
+      "year":      { "from": "Year",       "label": "Year" },
+      "month":     { "from": "Month",      "label": "Month" }
+    },
+    "period": { "table": "Calendar", "yearCol": "Year", "monthCol": "Month", "fallback": 12 },
+    "order": { "team": ["VES", "PED-COA", "RDH", "OPS", "IEP"] }
+  },
+  "metric": { "id": "fte", "label": "FTEs", "unit": "FTE", "kind": "fte_equivalent", "scale": 100, "decimals": 1 },
+  "filters": {
+    "year": { "dim": "year", "label": "Year" },
+    "view": {
+      "label": "View",
+      "default": "team",
+      "options": [
+        { "id": "team",  "dim": "team",      "label": "By team",  "sub": "Allocated FTEs per department" },
+        { "id": "asset", "dim": "assetName", "label": "By asset", "sub": "Allocated FTEs per asset" }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "type": "kpis", "id": "overview-kpis",
+      "items": [
+        { "kind": "total_metric", "label": "Total FTEs", "caption": "{year}" },
+        { "kind": "dim_count", "dim": "team", "label": "Departments", "caption": "active teams" },
+        { "kind": "dim_count", "dim": "assetName", "label": "Assets", "caption": "tracked" },
+        { "kind": "largest_dim", "dim": "team", "label": "Largest team", "small": true },
+        { "kind": "avg_per_dim", "dim": "team", "label": "Avg per team", "caption": "FTE / team" }
+      ]
+    },
+    {
+      "type": "row", "id": "overview-charts", "children": [
+        { "type": "bar", "id": "chart-bar", "title": "FTE by {viewWord}", "sub": "{viewSub}", "dimFromView": true },
+        { "type": "line", "id": "chart-trend", "title": "FTE trend", "sub": "Monthly FTE-equivalent across the planning horizon", "dimFromView": true }
+      ]
+    },
+    {
+      "type": "stacked-bar", "id": "chart-stack", "title": "Asset allocation breakdown",
+      "sub": "FTE allocation by asset / indication pair — {year}",
+      "xDim": "team", "stackDim": "asset"
+    },
+    {
+      "type": "grouped-bar", "id": "chart-demand", "title": "Demand vs Capacity",
+      "sub": "Required FTEs (demand) vs allocated FTEs (capacity) by asset — {year}",
+      "xDim": "asset", "optional": true,
+      "compare": { "table": "Demand", "measure": "Required_FTE_%", "on": "Asset_ID", "dim": "asset" },
+      "seriesA": { "label": "Required (demand)", "color": "#9e2b50" },
+      "seriesB": { "label": "Allocated (capacity)", "color": "#2f6fa3" },
+      "kpis": [
+        { "kind": "compare_total", "side": "demand",   "label": "Total demand",  "caption": "FTEs required · {year}" },
+        { "kind": "compare_total", "side": "capacity", "label": "Total capacity", "caption": "FTEs allocated" },
+        { "kind": "compare_net",   "label": "Net surplus/shortfall", "caption": "capacity − demand" },
+        { "kind": "compare_under", "label": "Under-staffed", "caption": "of {n} {xDimLabel}s" }
+      ]
+    },
+    {
+      "type": "table", "id": "detail-table", "title": "Team allocation detail",
+      "sub": "Allocation share per asset",
+      "groupDim": "team", "rowDim": "asset",
+      "columns": [
+        { "header": "Team", "kind": "group-badge" },
+        { "header": "Asset / Indication", "kind": "row-label" },
+        { "header": "FTE (allocated)", "kind": "metric" },
+        { "header": "% of team", "kind": "share-bar" }
+      ]
+    },
+    {
+      "type": "cards", "id": "individual", "title": "FTE allocation — individual view",
+      "sub": "Per-person assignments and available capacity",
+      "entityIdDim": "personId", "entityNameDim": "person", "groupDim": "team", "itemDim": "asset",
+      "capacity": 100, "capacityLabel": "Available capacity", "totalLabel": "Total",
+      "teamFilter": true,
+      "kpis": [
+        { "kind": "entity_count", "label": "FTEs shown", "caption": "in view" },
+        { "kind": "entity_full", "label": "Fully allocated", "caption": "100% assigned" },
+        { "kind": "entity_hascap", "label": "Has capacity", "caption": "available" },
+        { "kind": "entity_avgcap", "label": "Avg capacity", "caption": "unallocated" }
+      ]
+    }
+  ],
+  "dataModel": {
+    "sheets": [
+      { "name": "FTE", "description": "One row per person (FTE).", "columns": [
+        { "name": "FTE_ID", "type": "int", "description": "Unique person id", "example": 1 },
+        { "name": "Name", "type": "text", "description": "Person full name", "example": "Jane Doe" },
+        { "name": "Function", "type": "text", "description": "Team / department", "example": "VES" }
+      ]},
+      { "name": "Assets", "description": "One row per asset/project.", "columns": [
+        { "name": "Asset_ID", "type": "int", "description": "Unique asset id", "example": 1 },
+        { "name": "Asset_Name", "type": "text", "description": "Asset name", "example": "DrugA" },
+        { "name": "Indication", "type": "text", "description": "Therapeutic area", "example": "Oncology" }
+      ]},
+      { "name": "Allocations", "description": "Fact table: each person's % allocation to an asset per month.", "columns": [
+        { "name": "Alloc_ID", "type": "int", "description": "Row id", "example": 1 },
+        { "name": "FTE_ID", "type": "int", "description": "→ FTE.FTE_ID", "example": 1 },
+        { "name": "Asset_ID", "type": "int", "description": "→ Assets.Asset_ID", "example": 1 },
+        { "name": "Year", "type": "int", "description": "Calendar year", "example": 2025 },
+        { "name": "Month", "type": "int", "description": "Month 1-12", "example": 6 },
+        { "name": "Percent_Allocation", "type": "number", "description": "0-100 percent of time", "example": 100 }
+      ]},
+      { "name": "Calendar", "description": "Valid Year/Month combinations in the plan.", "columns": [
+        { "name": "Year", "type": "int", "description": "Calendar year", "example": 2025 },
+        { "name": "Month", "type": "int", "description": "Month 1-12", "example": 6 }
+      ]},
+      { "name": "Demand", "description": "Required FTE % per asset per month (optional).", "columns": [
+        { "name": "Year", "type": "int", "description": "Calendar year", "example": 2025 },
+        { "name": "Month", "type": "int", "description": "Month 1-12", "example": 6 },
+        { "name": "Asset_ID", "type": "int", "description": "→ Assets.Asset_ID", "example": 1 },
+        { "name": "Required_FTE_%", "type": "number", "description": "Required FTE percent (e.g. 300 = 3 FTEs)", "example": 300 }
+      ]}
+    ]
+  }
+}
