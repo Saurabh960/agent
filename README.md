@@ -51,8 +51,13 @@ aws configure        # or: aws sso login / export AWS_PROFILE=<name>
 ```bash
 python main.py --mockups "../Resource Allocation Dashboard Concept_DRAFT_25May2026_Claude.docx" \
                --region us-east-1 \
-               --model us.anthropic.claude-sonnet-4-6
+               --model us.anthropic.claude-sonnet-4-6 \
+               --profile my-sso-profile        # named AWS profile (optional)
 ```
+
+`--profile` selects a named profile from `~/.aws/config` (e.g. an SSO profile) — handy at
+work. Omit it to use the default credential chain or the `AWS_PROFILE` env var. With SSO,
+run `aws sso login --profile my-sso-profile` first.
 
 Always pass `--model` (an enabled Bedrock model id or inference-profile id) and `--region`
 explicitly — the built-in defaults may not be enabled in your account. List what you have:

@@ -25,12 +25,17 @@ import mockups  # noqa: E402
 import tools  # noqa: E402
 
 
-def build_agent(model_id: str, region: str):
+def build_agent(model_id: str, region: str, profile: str | None = None):
     from strands import Agent
     from strands.models import BedrockModel
 
     system_prompt = (HERE / "system_prompt.md").read_text(encoding="utf-8")
-    model = BedrockModel(model_id=model_id, region_name=region)
+    if profile:
+        import boto3
+        session = boto3.Session(profile_name=profile, region_name=region)
+        model = BedrockModel(model_id=model_id, boto_session=session)
+    else:
+        model = BedrockModel(model_id=model_id, region_name=region)
     return Agent(
         model=model,
         system_prompt=system_prompt,
@@ -83,6 +88,9 @@ def main() -> None:
     ap.add_argument("--mockups", required=True, help="Word/PDF/image of the target dashboards")
     ap.add_argument("--out", default="out/session", help="output directory for template + dashboard")
     ap.add_argument("--region", default="us-east-1", help="AWS region for Bedrock")
+    ap.add_argument("--profile", default=None,
+                    help="named AWS profile (e.g. an SSO profile from ~/.aws/config). "
+                         "If omitted, uses the default credential chain / AWS_PROFILE env var.")
     ap.add_argument(
         "--model",
         default="us.anthropic.claude-sonnet-4-20250514-v1:0",
@@ -113,7 +121,7 @@ def main() -> None:
         run_dry(paths, example)
         return
 
-    agent = build_agent(args.model, args.region)
+    agent = build_agent(args.model, args.region, args.profile)
 
     # 2. first turn: instructions + the mockup images + the reference spec
     intro = [
