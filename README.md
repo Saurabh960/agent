@@ -37,6 +37,18 @@ mockups (.docx/.pdf)
 - `examples/resource_allocation.spec.json` — the canonical reference spec (also spec #1).
 - `main.py` — the CLI: extract mockups → first agent turn with images → iterate.
 
+## Three ways to run it
+
+There are exactly three commands. Pick by what you want to do:
+
+| # | What | Command | Needs AWS? |
+|---|------|---------|------------|
+| 1 | **Dry run** — rehearse the whole pipeline (no LLM). Good first check on a new machine. | `python main.py --mockups <doc> --out out/dryrun --dry-run` | No |
+| 2 | **Actual run** — the real agent: Claude reads your mockups and iterates with you. | `python main.py --mockups <doc> --region us-east-1 --model us.anthropic.claude-sonnet-4-6 --profile <profile>` | Yes |
+| 3 | **Manual build** — skip the agent; build a dashboard straight from a spec + a filled `.xlsx`. | `python generator.py <spec.json> <data.xlsx> <out_dir>` | No |
+
+After any of them, open `<out_dir>/dashboard/index.html` (or `out/session/dashboard/index.html`) in a browser. Each command is explained in full below.
+
 ## Setup
 
 ```bash
